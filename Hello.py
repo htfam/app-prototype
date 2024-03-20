@@ -106,7 +106,8 @@ with st.sidebar:
             #print(st.session_state['response_text'])
             cleaned_response_text = st.session_state['response_text'].replace("```json", "").replace("```", "").strip()
             print(cleaned_response_text)
-            question_data = json.loads(cleaned_response_text)
+            question_data = cleaned_response_text
+            #question_data = json.loads(cleaned_response_text)
             print(question_data)
 
             if not isinstance(question_data, list):
