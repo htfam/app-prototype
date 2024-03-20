@@ -236,7 +236,7 @@ if st.button('Generate QTI File'):
     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as tmp_quiz_file:
         cleaned_response_text = st.session_state['response_text'].replace("```json", "").replace("```", "").strip()
         print(st.session_state['response_text'])
-        question_data = json.loads(cleaned_response_text.strip('"'))
+        question_data = json.loads(cleaned_response_text)
         print(question_data)
         if not isinstance(question_data, list):
             question_data = [question_data]
