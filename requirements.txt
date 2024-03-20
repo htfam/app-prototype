@@ -6,5 +6,5 @@ streamlit
 canvasapi
 openai
 text2qti
-subprocess
+subprocess.run
 tempfile
