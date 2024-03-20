@@ -6,3 +6,6 @@ streamlit
 canvasapi
 openai
 text2qti
+os
+subprocess
+tempfile
