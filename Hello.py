@@ -10,6 +10,33 @@ import tempfile
 import os
 import shutil
 
+# Set page configuration to use wide mode, making better use of screen space
+st.set_page_config(layout="wide")
+
+def format_quiz_display(questions):
+    quiz_content = ""
+    alpha = 'abcdefghijklmnopqrstuvwxyz'  # For indexing multiple choice options
+
+    for i, question in enumerate(questions, start=1):
+        # Add the question text
+        quiz_content += f"{i}. {question['question_text']}\n"
+
+        if question['question_type'] == 'multiple_choice_question':
+            for idx, ans in enumerate(question['answers']):
+                prefix = "*" if ans['weight'] == 100 else ""
+                quiz_content += f"{prefix}{alpha[idx]}) {ans['answer_text']}\n"
+                
+        elif question['question_type'] == 'true_false_question':
+            correct_answer = "True" if question['answers'][0]['weight'] == 100 else "False"
+            quiz_content += f"*a) {correct_answer}\nb) {'False' if correct_answer == 'True' else 'True'}\n"
+            
+        elif question['question_type'] == 'essay_question':
+            quiz_content += "___\n"
+        
+        quiz_content += "\n"
+
+    return quiz_content
+
 def format_quiz(questions):
     quiz_content = "\nQuiz title: Quiz\n"
     alpha = 'abcdefghijklmnopqrstuvwxyz'  # For indexing multiple choice options
@@ -48,7 +75,7 @@ def create_quiz(canvas_domain, canvas_token, course_id, quiz_data):
 def chat_prompting(question):
     global conversation_history
     # Append the user's question to the conversation history
-    conversation_history.append({"role": "user", "content": question})
+    conversation_history.append({"role": "user", "content": f"{question}, I want {st.session_state['question_number']} total."})
 
     # Make the API call
     response = client.chat.completions.create(
@@ -74,14 +101,6 @@ with st.sidebar:
     openai_api_key = st.text_input("Enter your OpenAI API Key:",
                             type="password")
     
-    # # Add a subject selection dropdown
-    # subject_options = ['Management', 'Marketing', 'Finance',
-    #                     'Economics', 'Accounting', 'Operations',
-    #                     'Analytics', 'Information Systems']
-    # # Create a select box that directly modifies session state
-    # st.session_state['selected_subject'] = st.selectbox("What subject are you interested in?",
-    #                                                   subject_options)
-    
     upload_to_canvas = st.radio("Are you interested in uploading to Canvas?", ('Yes', 'No'), index = 1)
 
     if upload_to_canvas == 'Yes':   
@@ -103,14 +122,14 @@ with st.sidebar:
             existing_quiz_id = st.text_input("Enter Existing Quiz ID:")
             
         if st.button('Submit'):
-            #print(st.session_state['response_text'])
-            cleaned_response_text = st.session_state['response_text'].replace("```json", "").replace("```", "").strip()
-            print(cleaned_response_text)
-            question_data = json.loads(cleaned_response_text)
-            #print(question_data)
+            # #print(st.session_state['response_text'])
+            # cleaned_response_text = st.session_state['response_text'].replace("```json", "").replace("```", "").strip()
+            # #print(cleaned_response_text)
+            # question_data = json.loads(cleaned_response_text)
+            # #print(question_data)
 
-            if not isinstance(question_data, list):
-                question_data = [question_data]
+            # if not isinstance(question_data, list):
+            #     question_data = [question_data]
             
             if action == 'Create New Quiz':
                 # Input fields for quiz details
@@ -128,7 +147,7 @@ with st.sidebar:
                 st.success(f'Adding questions to existing quiz with ID: {existing_quiz_id}')
             
             # Add questions to the quiz
-            add_question_to_quiz(quiz, question_data)
+            add_question_to_quiz(quiz, st.session_state['all_selected_questions'])
             st.success('Questions added to the quiz.')
     
     if st.button('Refresh App'):
@@ -201,64 +220,107 @@ client = OpenAI(
 )
 
 
+
+
 # Initialize 'response_text' in Streamlit's session state if it's not already set
 if 'response_text' not in st.session_state:
     st.session_state['response_text'] = ""
+if 'question_data' not in st.session_state:
+    st.session_state['question_data'] = []
+if 'all_selected_questions' not in st.session_state:
+    st.session_state['all_selected_questions'] = []  # This will store all selected questions across generations.
 
-# Input field for the question creation and the number of questions
-question = st.text_area("Enter your question prompt:")
+# Use st.columns to create two columns
+col1, col2 = st.columns([1, 1.75], gap="medium")
 
-# Function to convert the structured data into a human-friendly format
-# def format_question_data(data):
-#     data = data.replace("```json", "").replace("```", "").strip()
-#     formatted_data = json.loads(data.strip('"'))
-#     formatted_text = ""
-#     for question in formatted_data:
-#         name = question.get("question_name", "Unnamed Question")
-#         text = question.get("question_text", "")
-#         question_type = question.get("question_type", "Unknown Type").replace("_", " ").title()
-#         points = question.get("points_possible", 0)
-        
-#         formatted_text += f"Question: {name}\nType: {question_type}\nPoints: {points}\n{text}\n\n"
-#     return formatted_text.strip()
+with col1:
+    # Input field for the number of questions
+    st.session_state['question_number'] = st.selectbox("How many questions would you like?",
+                                                    options = ('1', '2', '3', '4', '5'),
+                                                    index = 0)
 
-
-
-if st.button("Generate"):
-    st.session_state['response_text'] = chat_prompting(question)
-    st.text_area("Generated Question:", value=st.session_state['response_text'], height=150, key="response")
-else:
-    st.warning("Please enter a question and click generate.")
-
-
-# Button to generate quiz and QTI file
-if st.button('Generate QTI File'):
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as tmp_quiz_file:
+    # Input field for the question creation and the number of questions
+    question = st.text_area("Enter your question prompt:", value = "Create a multiple choice supply chain question")
+    if st.button("Generate"):
+        st.session_state['response_text'] = chat_prompting(question)
         cleaned_response_text = st.session_state['response_text'].replace("```json", "").replace("```", "").strip()
-        #print(st.session_state['response_text'])
-        question_data = json.loads(cleaned_response_text)
-        #print(question_data)
+        question_data = json.loads(cleaned_response_text.strip('"'))
         if not isinstance(question_data, list):
             question_data = [question_data]
-        #print(format_quiz(question_data))
-        tmp_quiz_file.write(format_quiz(question_data))
-        tmp_quiz_file.flush()  # Make sure content is written
+        st.session_state['question_data'] = question_data
+        st.text_area("Generated Question:", value=format_quiz_display(st.session_state['question_data']), height=350, key="response")
+        #st.session_state['generate_clicked'] = True
 
-        # Assuming text2qti is accessible and installed in the environment
-        subprocess.run(['text2qti', tmp_quiz_file.name], shell=True)
-        qti_output_filename = os.path.splitext(tmp_quiz_file.name)[0] + ".zip"
+    if 'form_question_selections' not in st.session_state:
+        st.session_state['form_question_selections'] = list()
 
-    # Offer the QTI file for download
-    if os.path.exists(qti_output_filename):
-        with open(qti_output_filename, "rb") as fp:
-            btn = st.download_button(
-                label="Download QTI File",
-                data=fp,
-                file_name="quiz.qti.zip",
-                mime="application/zip"
-            )
-        os.remove(qti_output_filename)  # Clean up the QTI file after offering it for download
-    else:
-        st.error("Failed to generate the QTI file.")
+    #st.session_state['form_question_selections']
 
-    os.remove(tmp_quiz_file.name)  # Clean up the temporary quiz file
+    with st.form("question_selection_form"):
+        new_selections = []  # Temporarily store the current form's selections
+        st.write("Which question(s) would you like to keep?")
+        for i, question in enumerate(st.session_state['question_data']):
+            # Render checkbox and store its state
+            selected = st.checkbox(f"Question {i+1}", key=f"select_question_{i}")
+            new_selections.append(selected)
+        
+        # On form submission, update the selections in session state
+        submitted = st.form_submit_button("Submit Selections")
+        if submitted:
+            # Append newly selected questions to the persistent list of all selected questions.
+            for i, selected in enumerate(new_selections):
+                if selected and st.session_state['question_data'][i] not in st.session_state['all_selected_questions']:
+                    st.session_state['all_selected_questions'].append(st.session_state['question_data'][i])
+
+with col2:
+    # Display all selected questions
+    st.write("Selected Questions:")
+    #for question in st.session_state['all_selected_questions']:
+    st.text(format_quiz_display(st.session_state['all_selected_questions']))
+
+
+    # Button to generate quiz and QTI file
+    if st.button('Generate QTI File'):
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as tmp_quiz_file:
+            tmp_quiz_file.write(format_quiz(st.session_state['all_selected_questions']))
+            tmp_quiz_file.flush()  # Make sure content is written
+
+            # Assuming text2qti is accessible and installed in the environment
+            subprocess.run(['text2qti', tmp_quiz_file.name], shell=False)
+            qti_output_filename = os.path.splitext(tmp_quiz_file.name)[0] + ".zip"
+
+        # Offer the QTI file for download
+        if os.path.exists(qti_output_filename):
+            with open(qti_output_filename, "rb") as fp:
+                btn = st.download_button(
+                    label="Download QTI File",
+                    data=fp,
+                    file_name="quiz.qti.zip",
+                    mime="application/zip"
+                )
+            os.remove(qti_output_filename)  # Clean up the QTI file after offering it for download
+        else:
+            st.error("Failed to generate the QTI file.")
+
+        os.remove(tmp_quiz_file.name)  # Clean up the temporary quiz file
+
+
+
+
+st.markdown("""
+<br>
+<br>
+<br>
+<br>            
+<div style='height: 100%; display: flex; flex-direction: column; justify-content: flex-end;'>
+    <hr style='border-top: 1px solid #bbb;'>
+    <p style='text-align: left;'>
+        <b>Credits:</b> This app was developed by Hieu Pham and Milton Chen from the College of Business at the University of Alabama in Huntsville.</a>.
+    </p>
+    <p style='text-align: left;'>
+        <b>Disclaimer:</b>  This is an experimental application and is provided "as-is" without any warranty, express or implied. We are sharing codes for academic purposes under the MIT license. Nothing herein is academic advice. By using this project, you hereby release and hold harmless the creators from any and all liability or responsibility for any claims, damages, losses, liabilities, costs, and expenses arising from or related to your use of the project.<br>
+        <br>
+        Please note that the use of the OpenAI's GPT language models can be expensive due to its token usage. By utilizing this project, you acknowledge that you are responsible for monitoring and managing your own token usage and the associated costs. It is highly recommended to check your OpenAI API usage regularly and set up any necessary limits or alerts to prevent unexpected charges.
+    </p>
+</div>
+""", unsafe_allow_html=True)
