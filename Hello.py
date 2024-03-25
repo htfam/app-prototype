@@ -240,7 +240,7 @@ with col1:
                                                     index = 0)
 
     # Input field for the question creation and the number of questions
-    question = st.text_area("Enter your question prompt:", value = "Create a multiple choice supply chain question")
+    question = st.text_area("Enter your question prompt:", value = "Create multiple choice questions about IRS tax forms.")
     if st.button("Generate"):
         st.session_state['response_text'] = chat_prompting(question)
         cleaned_response_text = st.session_state['response_text'].replace("```json", "").replace("```", "").strip()
