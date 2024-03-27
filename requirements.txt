@@ -10,7 +10,7 @@ subprocess.run
 temp
 regex
 pillow
-io
+Python-IO
 langchain
 PyPDF2
 ast
