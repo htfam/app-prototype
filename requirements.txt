@@ -8,3 +8,9 @@ openai
 text2qti
 subprocess.run
 temp
+re
+PIL
+io
+langchain
+PyPDF2
+ast
