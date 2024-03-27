@@ -9,7 +9,7 @@ text2qti
 subprocess.run
 temp
 regex
-PIL
+pillow
 io
 langchain
 PyPDF2
