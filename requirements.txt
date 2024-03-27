@@ -8,7 +8,7 @@ openai
 text2qti
 subprocess.run
 temp
-re
+regex
 PIL
 io
 langchain
