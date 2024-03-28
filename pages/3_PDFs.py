@@ -20,7 +20,6 @@ import ast
 
 # Set page configuration to use wide mode, making better use of screen space
 st.set_page_config(page_title="Upload PDF Documents",layout="wide")
-st.sidebar.header("Mapping Demo")
 
 # Function to encode the image
 def extract_pdf(image):
@@ -109,7 +108,7 @@ def chat_prompting_text(question, uploaded_fule):
 
     # Make the API call
     response = client.chat.completions.create(
-        model = "gpt-4-1106-preview",
+        model = openai_model,
         #model="gpt-3.5-turbo-0125",  # Make sure to use the correct model here
         messages=conversation_history
     )
@@ -124,14 +123,19 @@ def chat_prompting_text(question, uploaded_fule):
     return answer
 
 # Title
-st.title(":blue[Question Creator]")
+st.title("Question Creator from PDFs")
 
 
 # Moving configuration options to the sidebar
 with st.sidebar:
 
-    openai_api_key = st.text_input("Enter your OpenAI API Key:",
-                            type="password")
+    # openai_api_key = st.text_input("Enter your OpenAI API Key:",
+    #                         type="password")
+    
+    openai_model = st.selectbox('OpenAI Model', ['gpt-3.5-turbo-0125',
+                                            'gpt-3.5-turbo-1106', 'gpt-4-0125-preview',
+                                            'gpt-4-1106-preview', 'gpt-4-vision-preview',
+                                            'gpt-4-1106-vision-preview'])
     
     upload_to_canvas = st.radio("Are you interested in uploading to Canvas?", ('Yes', 'No'), index = 1)
 
@@ -139,7 +143,7 @@ with st.sidebar:
         canvas_token = st.text_input("Enter your Canvas API Token:",
                                     type="password")
 
-        canvas_domain = st.text_input("Enter your Canvas Domain (e.g. 'https://AAA.instructure.com'):")  # Or use st.text_input to allow dynamic input
+        canvas_domain = st.text_input("Enter your Canvas Domain (e.g. 'https://AAA.instructure.com'):") 
         course_id = st.text_input("Enter your Course ID:")
         
         # Option to choose action
@@ -183,6 +187,7 @@ with st.sidebar:
             st.success('Questions added to the quiz.')
     
     if st.button('Refresh App'):
+        st.session_state.clear() 
         st.rerun()
 
 
@@ -244,18 +249,18 @@ conversation_history = [
     {"role": "system", "content": f"You are a professor who is a great educator."},
     #{"role": "user", "content": f"If I ask you to create a question, please format your output for the canvasapi, i.e. in a JSON dictionary format with double quotes. Following the example formatting exactly. \nHere is an example of how to format the output:\n{quiz_example}"},
     {"role": "user", "content": f"If I ask you to create a question, please format your output for the canvasapi, i.e. as a python dictionary. Following the example formatting exactly. \nHere is an example of how to format the output:\n{quiz_example}"},
-    {"role": "user", "content": "If the question involves a table of values, please embed the table directly in the question in HTML format."},
+    {"role": "user", "content": "If the question involves a table of values, please embed the table directly in the question in HTML format. Only output the python dictionary and nothing else not even comments."},
     {"role": "user", "content": "If I do not ask for a question, simply respond normally."}
 ]
 # Define client for OpenAI API
 client = OpenAI(
-    api_key=openai_api_key
+    api_key=st.session_state['openai_api_key']
 )
 
 # Openai Image header
 headers = {
   "Content-Type": "application/json",
-  "Authorization": f"Bearer {openai_api_key}"
+  "Authorization": f"Bearer {st.session_state['openai_api_key']}"
 }
 
 
@@ -303,7 +308,7 @@ with col1:
         num_tokens_advanced = len(tokens_advanced)
 
         st.text("Number of pages: " + str(st.session_state['page_numbers']))
-        st.text("Approximate number of tokens: " + str(num_tokens_advanced))
+        st.text("Approximate number of tokens: " + str(num_tokens_advanced + 4000)) #add 4000 due to conversation initialization
 
     if st.button("Generate"):
         st.session_state['response_text'] = chat_prompting_text(question, uploaded_file)
