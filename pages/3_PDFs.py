@@ -105,7 +105,7 @@ def chat_prompting_text(question, uploaded_fule):
     # Append the user's question to the conversation history
     conversation_history.append({"role": "user", "content": f"This is an attached pdf document {text_content} for you to use. {question}, I want {st.session_state['question_number']} total."})
 
-
+    print(conversation_history)
     # Make the API call
     response = client.chat.completions.create(
         model = openai_model,
@@ -312,7 +312,7 @@ with col1:
 
     if st.button("Generate"):
         st.session_state['response_text'] = chat_prompting_text(question, uploaded_file)
-        cleaned_response_text = st.session_state['response_text'].replace("```json", "").replace("```", "").strip()
+        cleaned_response_text = st.session_state['response_text'].replace("```json", "").replace("```python", "").replace("```", "").strip()
         #question_data = json.loads(cleaned_response_text.strip('"'))
         question_data = ast.literal_eval(cleaned_response_text)
         # if not isinstance(question_data, list):
