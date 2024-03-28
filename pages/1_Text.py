@@ -112,20 +112,7 @@ def convert_to_json(input_data):
 
 st.title("Question Creator from Text")
 
-# Safe check for 'openai_api_key'
-# Initialize 'openai_api_key' with an empty string if it doesn't exist
-st.session_state.setdefault('openai_api_key', '')
 
-if 'openai_api_key' not in st.session_state or not st.session_state.get('openai_api_key'):
-    api_key_input = st.sidebar.text_input("Enter your OpenAI API key:", "", type="password")
-    if api_key_input:
-        st.session_state['openai_api_key'] = api_key_input
-        st.sidebar.success("API Key saved! Navigate to other pages without re-entering.")
-else:
-    st.sidebar.success("API Key is saved.")
-    if st.sidebar.button("Change API Key"):
-        del st.session_state['openai_api_key']
-        st.session_state.setdefault('openai_api_key', '')
         
 
 
