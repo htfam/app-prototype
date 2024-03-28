@@ -16,7 +16,6 @@ import ast
 
 # Set page configuration to use wide mode, making better use of screen space
 st.set_page_config(page_title="Upload Images", layout="wide")
-st.sidebar.header("Mapping Demo")
 
 # Function to encode the image
 def encode_image(image):
@@ -123,7 +122,7 @@ def chat_prompting_image(question, uploaded_file):
     
     # Define payload
     payload = {
-    "model": "gpt-4-vision-preview",
+    "model": openai_model,
     "messages": conversation_history,
     "max_tokens": 3000
     }
@@ -142,14 +141,17 @@ def chat_prompting_image(question, uploaded_file):
     return answer
 
 
-st.title("Question Creator")
+st.title("Question Creator from Images")
 
 
 # Moving configuration options to the sidebar
 with st.sidebar:
 
-    openai_api_key = st.text_input("Enter your OpenAI API Key:",
-                            type="password")
+    # openai_api_key = st.text_input("Enter your OpenAI API Key:",
+    #                         type="password",
+    #                         value = st.session_state['openai_api_key'])
+    
+    openai_model = st.selectbox('OpenAI Model', ['gpt-4-vision-preview','gpt-4-1106-vision-preview'])
     
     upload_to_canvas = st.radio("Are you interested in uploading to Canvas?", ('Yes', 'No'), index = 1)
 
@@ -201,6 +203,7 @@ with st.sidebar:
             st.success('Questions added to the quiz.')
     
     if st.button('Refresh App'):
+        st.session_state.clear() 
         st.rerun()
 
 
@@ -267,13 +270,13 @@ conversation_history = [
 ]
 # Define client for OpenAI API
 client = OpenAI(
-    api_key=openai_api_key
+    api_key=st.session_state['openai_api_key']
 )
 
 # Openai Image header
 headers = {
   "Content-Type": "application/json",
-  "Authorization": f"Bearer {openai_api_key}"
+  "Authorization": f"Bearer {st.session_state['openai_api_key']}"
 }
 
 
