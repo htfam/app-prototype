@@ -13,7 +13,6 @@ import ast
 
 # Set page configuration to use wide mode, making better use of screen space
 st.set_page_config(page_title="Text Only", layout="wide")
-st.title("Text Only")
 
 def format_quiz_display(questions):
     quiz_content = ""
@@ -81,7 +80,7 @@ def chat_prompting(question):
 
     # Make the API call
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",  # Make sure to use the correct model here
+        model=openai_model,  # Make sure to use the correct model here
         messages=conversation_history
     )
 
@@ -111,14 +110,35 @@ def convert_to_json(input_data):
             raise ValueError("Input data is neither valid JSON nor a valid Python literal.")
     return parsed_data
 
-st.title("Question Creator")
+st.title("Question Creator from Text")
+
+# Safe check for 'openai_api_key'
+# Initialize 'openai_api_key' with an empty string if it doesn't exist
+st.session_state.setdefault('openai_api_key', '')
+
+if 'openai_api_key' not in st.session_state or not st.session_state.get('openai_api_key'):
+    api_key_input = st.sidebar.text_input("Enter your OpenAI API key:", "", type="password")
+    if api_key_input:
+        st.session_state['openai_api_key'] = api_key_input
+        st.sidebar.success("API Key saved! Navigate to other pages without re-entering.")
+else:
+    st.sidebar.success("API Key is saved.")
+    if st.sidebar.button("Change API Key"):
+        del st.session_state['openai_api_key']
+        st.session_state.setdefault('openai_api_key', '')
+        
 
 
 # Moving configuration options to the sidebar
 with st.sidebar:
 
-    openai_api_key = st.text_input("Enter your OpenAI API Key:",
-                            type="password")
+    # st.session_state['openai_api_key'] = st.text_input("Enter your OpenAI API Key:",
+    #                         type="password")
+    
+    openai_model = st.selectbox('OpenAI Model', ['gpt-3.5-turbo-0125',
+                                               'gpt-3.5-turbo-1106', 'gpt-4-0125-preview',
+                                               'gpt-4-1106-preview', 'gpt-4-vision-preview',
+                                               'gpt-4-1106-vision-preview'])
     
     upload_to_canvas = st.radio("Are you interested in uploading to Canvas?", ('Yes', 'No'), index = 1)
 
@@ -170,6 +190,7 @@ with st.sidebar:
             st.success('Questions added to the quiz.')
     
     if st.button('Refresh App'):
+        st.session_state.clear() 
         st.rerun()
 
 
@@ -230,12 +251,12 @@ quiz_example = [
 conversation_history = [
     {"role": "system", "content": f"You are a professor who is a great educator."},
     {"role": "user", "content": f"If I ask you to create a question, please format your output for the canvasapi, i.e. as a python dictionary. Following the example formatting exactly. \nHere is an example of how to format the output:\n{quiz_example}"},
-    {"role": "user", "content": "If the question involves a table of values, please embed the table directly in the question in HTML format."},
+    {"role": "user", "content": "If the question involves a table of values, please embed the table directly in the question in HTML format. Only output the python dictionary and nothing else not even comments."},
     {"role": "user", "content": "If I do not ask for a question, simply respond normally."}
 ]
 # Define client for OpenAI API
 client = OpenAI(
-    api_key=openai_api_key
+    api_key=st.session_state['openai_api_key']
 )
 
 
