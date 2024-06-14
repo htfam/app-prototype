@@ -12,7 +12,7 @@ import shutil
 import base64
 from PIL import Image
 from io import BytesIO
-from langchain.document_loaders import PyPDFLoader
+#from langchain.document_loaders import PyPDFLoader
 import PyPDF2
 import re
 import ast
